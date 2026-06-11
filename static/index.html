@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Field AI — Energy &amp; Utility Assistant</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── TOKENS ─────────────────────────────────────────────────────── */
+:root {
+  --blue-900: #0f2342;
+  --blue-800: #163660;
+  --blue-700: #1d4a80;
+  --blue-600: #1f5fa6;
+  --blue-500: #2272c3;
+  --blue-400: #4a90d9;
+  --blue-100: #dbeafe;
+  --blue-50:  #eff6ff;
+
+  --slate-900: #0f172a;
+  --slate-700: #334155;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;
+  --slate-100: #f1f5f9;
+  --slate-50:  #f8fafc;
+
+  --green-600: #16a34a;
+  --green-100: #dcfce7;
+  --red-600:   #dc2626;
+  --red-100:   #fee2e2;
+  --amber-600: #d97706;
+  --amber-100: #fef3c7;
+
+  --white: #ffffff;
+
+  --font-ui:   'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Mono', monospace;
+
+  --radius-sm: 4px;
+  --radius:    8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(15,35,66,0.06);
+  --shadow:    0 1px 4px rgba(15,35,66,0.08), 0 4px 12px rgba(15,35,66,0.06);
+  --shadow-md: 0 2px 8px rgba(15,35,66,0.10), 0 8px 24px rgba(15,35,66,0.08);
+}
+
+/* ── RESET ───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--slate-100);
+  color: var(--slate-900);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ──────────────────────────────────────────────────────── */
+header {
+  background: var(--blue-900);
+  color: var(--white);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-mark {
+  width: 34px;
+  height: 34px;
+  background: var(--blue-500);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.logo-mark svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: white;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.logo-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--white);
+  line-height: 1;
+}
+
+.logo-sub {
+  font-size: 11px;
+  color: var(--blue-400);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--slate-400);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 20px;
+  padding: 4px 12px 4px 8px;
+  transition: color 0.2s;
+}
+
+#status-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--slate-500);
+  flex-shrink: 0;
+}
+
+#status-badge.online .dot { background: var(--green-600); }
+#status-badge.online { color: #a7f3d0; }
+#status-badge.llm .dot { background: var(--blue-400); animation: pulse 2s ease-in-out infinite; }
+#status-badge.llm { color: var(--blue-400); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── LAYOUT ──────────────────────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--white);
+  border-right: 1px solid var(--slate-200);
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 20px 4px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--slate-600, #475569);
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+  border-radius: 0;
+  position: relative;
+}
+
+.nav-btn:hover {
+  background: var(--slate-50);
+  color: var(--slate-900);
+}
+
+.nav-btn.active {
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-weight: 600;
+}
+
+.nav-btn.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--blue-500);
+  border-radius: 0 2px 2px 0;
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-btn.active .nav-icon { opacity: 1; }
+
+/* ── MAIN CONTENT ────────────────────────────────────────────────── */
+main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 860px;
+}
+
+/* ── PANELS ──────────────────────────────────────────────────────── */
+.panel { display: none; flex-direction: column; gap: 16px; }
+.panel.active { display: flex; }
+
+/* ── SECTION HEADER ──────────────────────────────────────────────── */
+.section-head {
+  margin-bottom: 4px;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--slate-900);
+  letter-spacing: -0.01em;
+}
+.section-desc {
+  font-size: 13px;
+  color: var(--slate-500);
+  margin-top: 2px;
+}
+
+/* ── INPUT CARD ──────────────────────────────────────────────────── */
+.input-card {
+  background: var(--white);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.input-card-body { padding: 16px; }
+
+.field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+textarea.query-input {
+  width: 100%;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius);
+  color: var(--slate-900);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.55;
+  padding: 12px 14px;
+  resize: none;
+  min-height: 86px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+textarea.query-input::placeholder { color: var(--slate-400); }
+
+textarea.query-input:focus {
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(34,114,195,0.12);
+  background: var(--white);
+}
+
+/* Quick chips */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.chip {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--blue-700);
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  border-radius: 20px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  background: var(--blue-100);
+  border-color: var(--blue-400);
+  color: var(--blue-800);
+}
+
+/* Input card footer */
+.input-card-footer {
+  border-top: 1px solid var(--slate-200);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  background: var(--slate-50);
+}
+
+/* ── BUTTON ──────────────────────────────────────────────────────── */
+.ask-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.08s;
+  letter-spacing: 0.01em;
+}
+
+.ask-btn:hover { background: var(--blue-700); }
+.ask-btn:active { transform: scale(0.98); }
+
+.ask-btn:disabled {
+  background: var(--slate-300);
+  color: var(--slate-500);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ask-btn-full {
+  width: 100%;
+  justify-content: center;
+  padding: 12px 20px;
+  font-size: 14px;
+}
+
+/* ── DROP ZONE ───────────────────────────────────────────────────── */
+.drop-zone {
+  display: block;
+  background: var(--slate-50);
+  border: 1.5px dashed var(--slate-300);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: var(--blue-400);
+  background: var(--blue-50);
+}
+
+.drop-zone input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.dz-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--slate-200);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.dz-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--slate-500);
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dz-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate-700);
+}
+
+.dz-sub {
+  font-size: 12.5px;
+  color: var(--slate-400);
+  margin-top: 3px;
+}
+
+.dz-filename {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--blue-600);
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  margin-top: 10px;
+  display: none;
+  word-break: break-all;
+}
+
+#photo-preview, #ocr-preview {
+  display: none;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: var(--radius);
+  border: 1px solid var(--slate-200);
+  background: var(--slate-50);
+  margin-top: 12px;
+}
+
+/* ── VOICE EXTRAS ────────────────────────────────────────────────── */
+.voice-record-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius);
+}
+
+.record-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--red-600);
+  border: none;
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.12s;
+  flex-shrink: 0;
+}
+
+.record-btn:hover { background: #b91c1c; }
+
+.record-btn.recording {
+  background: #7f1d1d;
+  animation: rec-pulse 1s ease-in-out infinite;
+}
+
+@keyframes rec-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+}
+
+.record-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--white);
+}
+
+.record-timer {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--slate-500);
+}
+
+.divider-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--slate-400);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.divider-or::before, .divider-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--slate-200);
+}
+
+/* ── RESULT AREA ─────────────────────────────────────────────────── */
+#result-area { display: none; flex-direction: column; gap: 16px; }
+#result-area.visible { display: flex; }
+
+/* Intermediate (caption / transcript / ocr) */
+.intermediate-card {
+  background: var(--white);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: none;
+}
+
+.intermediate-card-header {
+  padding: 9px 16px;
+  background: var(--slate-50);
+  border-bottom: 1px solid var(--slate-200);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.intermediate-card-body {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--slate-700);
+  line-height: 1.55;
+  font-style: italic;
+}
+
+/* Answer card */
+.answer-card {
+  background: var(--white);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.answer-card-header {
+  padding: 12px 18px;
+  background: var(--blue-900);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.answer-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.answer-card-title svg {
+  width: 14px;
+  height: 14px;
+  stroke: rgba(255,255,255,0.45);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mode-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.07);
+}
+
+.mode-pill.llm {
+  border-color: rgba(74,144,217,0.4);
+  color: var(--blue-400);
+  background: rgba(34,114,195,0.12);
+}
+
+.mode-pill.extractive {
+  border-color: rgba(22,163,74,0.4);
+  color: #6ee7b7;
+  background: rgba(22,163,74,0.1);
+}
+
+.answer-body {
+  padding: 20px 20px;
+  font-size: 14.5px;
+  color: var(--slate-800, #1e293b);
+  line-height: 1.6;
+}
+
+.answer-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.answer-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius);
+}
+
+.step-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue-600);
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.step-text {
+  font-size: 14px;
+  color: var(--slate-800, #1e293b);
+  line-height: 1.55;
+}
+
+/* ── SOURCES CARD ────────────────────────────────────────────────── */
+.sources-card {
+  background: var(--white);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.sources-header {
+  padding: 10px 18px;
+  background: var(--slate-50);
+  border-bottom: 1px solid var(--slate-200);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.source-row {
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--slate-100);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.source-row:last-child { border-bottom: none; }
+
+.source-score {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue-600);
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  min-width: 46px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.source-info { flex: 1; min-width: 0; }
+
+.source-file {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--slate-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.source-chunk {
+  font-size: 11.5px;
+  color: var(--slate-400);
+  margin-top: 1px;
+}
+
+/* ── ERROR BOX ───────────────────────────────────────────────────── */
+.error-box {
+  display: none;
+  background: var(--red-100);
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 13.5px;
+  color: #991b1b;
+  line-height: 1.5;
+}
+
+.error-box.visible { display: flex; align-items: flex-start; gap: 8px; }
+
+/* ── SPINNER ─────────────────────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── MOBILE ──────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+
+  .mobile-tab-bar {
+    display: grid !important;
+    grid-template-columns: repeat(4,1fr);
+    background: var(--white);
+    border-bottom: 1px solid var(--slate-200);
+    position: sticky;
+    top: 56px;
+    z-index: 100;
+  }
+
+  .mobile-tab-btn {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 10px 4px 8px;
+    font-family: var(--font-ui);
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--slate-500);
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.12s, border-color 0.12s;
+  }
+
+  .mobile-tab-btn.active {
+    color: var(--blue-600);
+    border-bottom-color: var(--blue-500);
+  }
+
+  .mobile-tab-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  main {
+    padding: 16px 14px 40px;
+    gap: 14px;
+  }
+
+  .ask-btn { padding: 12px 16px; }
+  .answer-body { padding: 14px; }
+  .source-row { padding: 10px 14px; }
+}
+
+.mobile-tab-bar { display: none; }
+.mobile-tab-btn { display: none; }
+
+@media (min-width: 701px) {
+  .app-shell { min-height: calc(100vh - 56px); }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-name">Field AI</div>
+      <div class="logo-sub">Energy &amp; Utility Assistant</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div id="status-badge">
+      <span class="dot"></span>
+      <span id="status-text">Connecting…</span>
+    </div>
+  </div>
+</header>
+
+<!-- MOBILE TAB BAR -->
+<div class="mobile-tab-bar" role="tablist">
+  <button class="mobile-tab-btn active" data-tab="text" role="tab">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    Text
+  </button>
+  <button class="mobile-tab-btn" data-tab="voice" role="tab">
+    <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+    Voice
+  </button>
+  <button class="mobile-tab-btn" data-tab="photo" role="tab">
+    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    Photo
+  </button>
+  <button class="mobile-tab-btn" data-tab="ocr" role="tab">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><path d="M3 17h4M5 14v7M3 10h18"/></svg>
+    Label
+  </button>
+</div>
+
+<div class="app-shell">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" role="navigation" aria-label="Input modes">
+    <div class="sidebar-section-label">Input Mode</div>
+
+    <button class="nav-btn active" data-tab="text" role="tab">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+      </span>
+      Text Query
+    </button>
+
+    <button class="nav-btn" data-tab="voice" role="tab">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
+        </svg>
+      </span>
+      Voice Query
+    </button>
+
+    <button class="nav-btn" data-tab="photo" role="tab">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </span>
+      Equipment Photo
+    </button>
+
+    <button class="nav-btn" data-tab="ocr" role="tab">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <path d="M8 21h8M12 17v4"/>
+          <path d="M7 8h2M11 8h6M7 12h10"/>
+        </svg>
+      </span>
+      Read Label / OCR
+    </button>
+
+    <div class="sidebar-section-label" style="margin-top:16px;">System</div>
+
+    <div style="padding: 6px 20px;">
+      <div style="font-size:12px;color:var(--slate-500);line-height:1.5;">
+        Queries are matched against embedded field documentation via RAG.
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- TEXT PANEL -->
+    <div class="panel active" id="panel-text">
+      <div class="section-head">
+        <div class="section-title">Ask a question</div>
+        <div class="section-desc">Type your query or select a common topic below.</div>
+      </div>
+
+      <div class="input-card">
+        <div class="input-card-body">
+          <label class="field-label" for="text-input">Your question</label>
+          <textarea class="query-input" id="text-input"
+            placeholder="e.g. What PPE is required when working near live electrical equipment?"
+            rows="3"></textarea>
+          <div class="chip-row">
+            <button class="chip" onclick="setChip('Transformer inspection checklist')">Transformer inspection checklist</button>
+            <button class="chip" onclick="setChip('Electrical PPE guidance')">Electrical PPE guidance</button>
+            <button class="chip" onclick="setChip('Transformer oil leak response')">Transformer oil leak response</button>
+            <button class="chip" onclick="setChip('Common electrical hazards')">Common electrical hazards</button>
+          </div>
+        </div>
+        <div class="input-card-footer">
+          <button class="ask-btn" id="text-ask-btn" onclick="submitText()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            Ask
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VOICE PANEL -->
+    <div class="panel" id="panel-voice">
+      <div class="section-head">
+        <div class="section-title">Voice query</div>
+        <div class="section-desc">Record directly or upload an existing audio file.</div>
+      </div>
+
+      <div class="input-card">
+        <div class="input-card-body" style="display:flex;flex-direction:column;gap:14px;">
+
+          <!-- Record row -->
+          <div>
+            <label class="field-label">Record</label>
+            <div class="voice-record-row">
+              <button class="record-btn" id="record-toggle-btn" onclick="toggleRecording()">
+                <span class="record-dot"></span>
+                <span id="record-label">Record</span>
+              </button>
+              <span class="record-timer" id="record-timer" style="display:none;"></span>
+              <span style="font-size:12.5px;color:var(--slate-400);" id="record-status">Tap to start recording</span>
+            </div>
+          </div>
+
+          <div class="divider-or">or upload file</div>
+
+          <!-- Upload -->
+          <div>
+            <label class="field-label">Upload audio</label>
+            <label class="drop-zone" id="voice-drop">
+              <div class="dz-icon">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <div class="dz-title">Choose audio file</div>
+              <div class="dz-sub">.mp3 or .wav</div>
+              <div class="dz-filename" id="voice-filename"></div>
+              <input type="file" id="voice-file" accept=".mp3,.wav,audio/*">
+            </label>
+          </div>
+
+        </div>
+        <div class="input-card-footer">
+          <button class="ask-btn" id="voice-ask-btn" onclick="submitVoice()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            Transcribe &amp; Ask
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHOTO PANEL -->
+    <div class="panel" id="panel-photo">
+      <div class="section-head">
+        <div class="section-title">Equipment photo</div>
+        <div class="section-desc">Upload a photo — BLIP will caption and identify the equipment.</div>
+      </div>
+
+      <div class="input-card">
+        <div class="input-card-body">
+          <label class="field-label">Equipment image</label>
+          <label class="drop-zone" id="photo-drop">
+            <div class="dz-icon">
+              <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <div class="dz-title">Choose image</div>
+            <div class="dz-sub">JPG or PNG</div>
+            <div class="dz-filename" id="photo-filename"></div>
+            <input type="file" id="photo-file" accept=".jpg,.jpeg,.png,image/*">
+          </label>
+          <img id="photo-preview" alt="Equipment preview">
+        </div>
+        <div class="input-card-footer">
+          <button class="ask-btn" id="photo-ask-btn" onclick="submitPhoto()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            Analyze &amp; Ask
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OCR PANEL -->
+    <div class="panel" id="panel-ocr">
+      <div class="section-head">
+        <div class="section-title">Read label / nameplate</div>
+        <div class="section-desc">EasyOCR extracts text from warning labels and nameplates.</div>
+      </div>
+
+      <div class="input-card">
+        <div class="input-card-body">
+          <label class="field-label">Label image</label>
+          <label class="drop-zone" id="ocr-drop">
+            <div class="dz-icon">
+              <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h2M11 8h6M7 12h10"/></svg>
+            </div>
+            <div class="dz-title">Choose label image</div>
+            <div class="dz-sub">JPG or PNG</div>
+            <div class="dz-filename" id="ocr-filename"></div>
+            <input type="file" id="ocr-file" accept=".jpg,.jpeg,.png,image/*">
+          </label>
+          <img id="ocr-preview" alt="Label preview">
+        </div>
+        <div class="input-card-footer">
+          <button class="ask-btn" id="ocr-ask-btn" onclick="submitOCR()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            Read &amp; Ask
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR -->
+    <div class="error-box" id="error-box">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span id="error-text"></span>
+    </div>
+
+    <!-- RESULT AREA -->
+    <div id="result-area">
+
+      <!-- Intermediate (caption / transcript / ocr) -->
+      <div class="intermediate-card" id="intermediate-box">
+        <div class="intermediate-card-header" id="intermediate-label">Detected</div>
+        <div class="intermediate-card-body" id="intermediate-text"></div>
+      </div>
+
+      <!-- Answer -->
+      <div class="answer-card">
+        <div class="answer-card-header">
+          <div class="answer-card-title">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Guidance
+          </div>
+          <span class="mode-pill" id="mode-pill">llm</span>
+        </div>
+        <div class="answer-body" id="answer-body"></div>
+      </div>
+
+      <!-- Sources -->
+      <div class="sources-card">
+        <div class="sources-header">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Source Documents
+        </div>
+        <div id="sources-list"></div>
+      </div>
+
+    </div><!-- /result-area -->
+
+  </main>
+</div><!-- /app-shell -->
+
+<script>
+/* ── TAB SWITCHING ────────────────────────────────────────────── */
+function switchTab(tab) {
+  document.querySelectorAll('.nav-btn, .mobile-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+    b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false');
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  hideResult();
+}
+
+document.querySelectorAll('.nav-btn, .mobile-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+/* ── FILE INPUTS ──────────────────────────────────────────────── */
+function wireFileInput(inputId, filenameId, previewId) {
+  const input    = document.getElementById(inputId);
+  const label    = document.getElementById(filenameId);
+  const preview  = previewId ? document.getElementById(previewId) : null;
+  const dropZone = input.closest('.drop-zone');
+
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+    label.textContent = file.name;
+    label.style.display = 'block';
+    if (preview && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      input.dispatchEvent(new Event('change'));
+    }
+  });
+}
+
+wireFileInput('voice-file', 'voice-filename', null);
+wireFileInput('photo-file', 'photo-filename', 'photo-preview');
+wireFileInput('ocr-file',   'ocr-filename',   'ocr-preview');
+
+/* ── ENTER TO SUBMIT ─────────────────────────────────────────── */
+document.getElementById('text-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitText(); }
+});
+
+/* ── QUICK CHIPS ─────────────────────────────────────────────── */
+function setChip(text) {
+  document.getElementById('text-input').value = text;
+  document.getElementById('text-input').focus();
+}
+
+/* ── HEALTH CHECK ────────────────────────────────────────────── */
+async function checkStatus() {
+  const badge = document.getElementById('status-badge');
+  const text  = document.getElementById('status-text');
+  try {
+    const r = await fetch('health');
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    const isLLM = d.llm && d.llm.includes('Qwen');
+    badge.className = isLLM ? 'llm' : 'online';
+    text.textContent = isLLM
+      ? 'Qwen 2.5 · ' + d.vectors + ' chunks'
+      : 'Extractive · ' + d.vectors + ' chunks';
+  } catch {
+    badge.className = '';
+    text.textContent = 'Offline';
+  }
+}
+checkStatus();
+setInterval(checkStatus, 30000);
+
+/* ── LOADING STATE ───────────────────────────────────────────── */
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (loading) {
+    btn._label = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span> Working…';
+    btn.disabled = true;
+  } else {
+    btn.innerHTML = btn._label || 'Ask';
+    btn.disabled = false;
+  }
+}
+
+/* ── ERROR HANDLING ──────────────────────────────────────────── */
+function showError(msg) {
+  const box = document.getElementById('error-box');
+  document.getElementById('error-text').textContent = msg;
+  box.classList.add('visible');
+  document.getElementById('result-area').classList.remove('visible');
+}
+
+function hideError() {
+  document.getElementById('error-box').classList.remove('visible');
+}
+
+function hideResult() {
+  document.getElementById('result-area').classList.remove('visible');
+  hideError();
+}
+
+/* ── RENDER RESULT ───────────────────────────────────────────── */
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderResult(data) {
+  hideError();
+
+  const ibox  = document.getElementById('intermediate-box');
+  const ilbl  = document.getElementById('intermediate-label');
+  const itxt  = document.getElementById('intermediate-text');
+
+  if (data.caption) {
+    ilbl.textContent = 'BLIP Caption';
+    itxt.textContent = data.caption;
+    ibox.style.display = 'block';
+  } else if (data.transcript) {
+    ilbl.textContent = 'Transcribed';
+    itxt.textContent = data.transcript;
+    ibox.style.display = 'block';
+  } else if (data.ocr_text) {
+    ilbl.textContent = 'OCR — Label Text';
+    itxt.textContent = data.ocr_text;
+    ibox.style.display = 'block';
+  } else {
+    ibox.style.display = 'none';
+  }
+
+  const pill = document.getElementById('mode-pill');
+  if (data.mode === 'llm') {
+    pill.textContent = 'Qwen 2.5 7B';
+    pill.className = 'mode-pill llm';
+  } else {
+    pill.textContent = 'Extractive';
+    pill.className = 'mode-pill extractive';
+  }
+
+  const body  = document.getElementById('answer-body');
+  const lines = (data.answer || '').split('\n').map(l => l.trim()).filter(Boolean);
+  const stepPat = /^(\d+)[.)]\s+(.+)/;
+  const hasSteps = lines.some(l => stepPat.test(l));
+
+  if (hasSteps) {
+    const ul = document.createElement('ul');
+    ul.className = 'answer-steps';
+    lines.forEach(line => {
+      const m  = line.match(stepPat);
+      const li = document.createElement('li');
+      li.className = 'answer-step';
+      if (m) {
+        li.innerHTML = '<span class="step-num">' + m[1] + '</span><span class="step-text">' + escHtml(m[2]) + '</span>';
+      } else {
+        li.innerHTML = '<span class="step-num">→</span><span class="step-text">' + escHtml(line) + '</span>';
+      }
+      ul.appendChild(li);
+    });
+    body.innerHTML = '';
+    body.appendChild(ul);
+  } else {
+    body.innerHTML = lines.map(l => '<p style="margin-bottom:8px">' + escHtml(l) + '</p>').join('');
+  }
+
+  const list = document.getElementById('sources-list');
+  list.innerHTML = '';
+  (data.sources || []).forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'source-row';
+    row.innerHTML =
+      '<span class="source-score">' + (s.score * 100).toFixed(0) + '%</span>' +
+      '<div class="source-info">' +
+        '<div class="source-file">' + escHtml(s.source) + '</div>' +
+        '<div class="source-chunk">Chunk #' + s.chunk_id + '</div>' +
+      '</div>';
+    list.appendChild(row);
+  });
+
+  document.getElementById('result-area').classList.add('visible');
+  document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── SUBMIT: TEXT ─────────────────────────────────────────────── */
+async function submitText() {
+  const query = document.getElementById('text-input').value.trim();
+  if (!query) return;
+  setLoading('text-ask-btn', true);
+  try {
+    const r = await fetch('query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Request failed');
+    renderResult(d);
+  } catch(e) {
+    showError(e.message);
+  } finally {
+    setLoading('text-ask-btn', false);
+  }
+}
+
+/* ── SUBMIT: VOICE ───────────────────────────────────────────── */
+async function submitVoice() {
+  let file = document.getElementById('voice-file').files[0];
+
+  // Fall back to recorded blob if no file chosen
+  if (!file && window._recordedBlob) {
+    file = new File([window._recordedBlob], 'recording.wav', { type: 'audio/wav' });
+  }
+
+  if (!file) { showError('Record audio or choose a file first.'); return; }
+  setLoading('voice-ask-btn', true);
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch('query/voice', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Transcription failed');
+    renderResult(d);
+  } catch(e) {
+    showError(e.message);
+  } finally {
+    setLoading('voice-ask-btn', false);
+  }
+}
+
+/* ── SUBMIT: PHOTO ───────────────────────────────────────────── */
+async function submitPhoto() {
+  const file = document.getElementById('photo-file').files[0];
+  if (!file) { showError('Please choose an image first.'); return; }
+  setLoading('photo-ask-btn', true);
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch('query/image', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Image analysis failed');
+    renderResult(d);
+  } catch(e) {
+    showError(e.message);
+  } finally {
+    setLoading('photo-ask-btn', false);
+  }
+}
+
+/* ── SUBMIT: OCR ─────────────────────────────────────────────── */
+async function submitOCR() {
+  const file = document.getElementById('ocr-file').files[0];
+  if (!file) { showError('Please choose a label image first.'); return; }
+  setLoading('ocr-ask-btn', true);
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch('query/ocr', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'OCR failed');
+    renderResult(d);
+  } catch(e) {
+    showError(e.message);
+  } finally {
+    setLoading('ocr-ask-btn', false);
+  }
+}
+
+/* ── VOICE RECORDING ─────────────────────────────────────────── */
+let _mediaRecorder = null;
+let _recordChunks  = [];
+let _recordTimer   = null;
+let _recordSecs    = 0;
+window._recordedBlob = null;
+
+function updateRecordTimer() {
+  _recordSecs++;
+  const m = String(Math.floor(_recordSecs / 60)).padStart(2, '0');
+  const s = String(_recordSecs % 60).padStart(2, '0');
+  document.getElementById('record-timer').textContent = m + ':' + s;
+}
+
+async function toggleRecording() {
+  if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+    _mediaRecorder.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _mediaRecorder  = new MediaRecorder(stream);
+    _recordChunks   = [];
+    _recordSecs     = 0;
+    window._recordedBlob = null;
+
+    _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordChunks.push(e.data); };
+
+    _mediaRecorder.onstop = () => {
+      clearInterval(_recordTimer);
+      stream.getTracks().forEach(t => t.stop());
+      window._recordedBlob = new Blob(_recordChunks, { type: 'audio/wav' });
+
+      const btn    = document.getElementById('record-toggle-btn');
+      const status = document.getElementById('record-status');
+      const timer  = document.getElementById('record-timer');
+
+      btn.classList.remove('recording');
+      document.getElementById('record-label').textContent = 'Record';
+      timer.style.display = 'none';
+      status.textContent  = 'Recording ready — click "Transcribe & Ask"';
+      status.style.color  = 'var(--green-600)';
+    };
+
+    _mediaRecorder.start();
+    _recordTimer = setInterval(updateRecordTimer, 1000);
+
+    const btn    = document.getElementById('record-toggle-btn');
+    const status = document.getElementById('record-status');
+    const timer  = document.getElementById('record-timer');
+
+    btn.classList.add('recording');
+    document.getElementById('record-label').textContent = 'Stop';
+    timer.style.display = 'inline';
+    status.textContent  = 'Recording…';
+    status.style.color  = 'var(--slate-400)';
+  } catch(e) {
+    showError('Microphone access denied. Upload an audio file instead.');
+  }
+}
+</script>
+</body>
+</html>

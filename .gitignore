@@ -1,0 +1,21 @@
+# PDF manuals (too large, downloaded at setup)
+data/manuals/*.pdf
+
+# FAISS index (rebuilt at setup)
+data/index/
+
+# Test files (generated at setup)
+data/test_*.jpg
+data/test_*.mp3
+
+# Uploads folder
+data/uploads/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Models cache
+.cache/

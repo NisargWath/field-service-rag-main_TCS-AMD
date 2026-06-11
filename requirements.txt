@@ -1,0 +1,12 @@
+pymupdf
+sentence-transformers
+faiss-cpu
+numpy
+transformers
+accelerate
+flask
+easyocr
+openai-whisper
+gTTS
+pydub
+Pillow

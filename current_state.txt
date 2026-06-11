@@ -1,0 +1,557 @@
+You are helping me continue a hackathon project.
+
+Project Name:
+Multi-Modal AI Field Service Assistant for Energy & Utility Field Technicians
+
+Core Idea:
+A field technician can ask a text question, speak a question hands-free, upload an equipment photo, or scan a warning label/nameplate. The system retrieves grounded safety and maintenance guidance from official manuals and returns a numbered technician checklist with source citations.
+
+The project runs on AMD Developer Cloud through JupyterLab.
+
+============================================================
+CURRENT ENVIRONMENT
+============================================================
+
+Platform:
+- AMD Developer Cloud
+- JupyterLab
+- Terminal access
+- Python 3.12
+- Running as root
+- Main project path: /workspace/field-service-rag
+- GitHub repo: https://github.com/NisargTCS/field-service-rag.git
+
+Important AMD browser rule:
+The app does not open at local laptop localhost.
+Flask runs inside AMD on port 5000 and is accessed through Jupyter proxy.
+
+Example browser URL:
+https://notebooks.amd.com/<current-instance-id>/proxy/5000/
+
+Example from current session:
+https://notebooks.amd.com/jupyter-hack-team-667-260610160512-aa12fa09/proxy/5000/
+
+============================================================
+CURRENT SYSTEM ARCHITECTURE
+============================================================
+
+Frontend:
+- Flask serves static/index.html at GET /
+- Professional blue/white operations UI is already built
+- UI has 4 modes:
+  1. Text Query
+  2. Voice Query
+  3. Equipment Photo
+  4. Read Label / OCR
+- UI shows:
+  - System/model status
+  - Query input
+  - Quick question chips
+  - Guidance checklist
+  - Source documents with chunk IDs and scores
+
+Backend:
+- Flask API in app.py
+- RAG pipeline over PDF manuals
+- Embeddings from BAAI/bge-small-en-v1.5
+- FAISS vector index
+- Qwen2.5-7B-Instruct served by vLLM on port 8000
+- Flask calls vLLM internally
+- Voice uses Whisper
+- Image uses BLIP
+- OCR uses EasyOCR
+
+Runtime architecture:
+Browser
+→ AMD Jupyter proxy /proxy/5000/
+→ Flask app on 0.0.0.0:5000
+→ RAG retrieval over FAISS
+→ Qwen2.5-7B via vLLM at http://127.0.0.1:8000/v1/chat/completions
+→ JSON response
+→ UI renders answer + sources
+
+Two servers are needed:
+1. vLLM/Qwen server on port 8000
+2. Flask app/frontend on port 5000
+
+============================================================
+PROJECT STRUCTURE
+============================================================
+
+/workspace/field-service-rag/
+├── app.py
+├── demo.py
+├── requirements.txt
+├── static/
+│   └── index.html
+├── rag/
+│   ├── __init__.py
+│   ├── build_index.py
+│   ├── document_loader.py
+│   ├── chunker.py
+│   ├── embedder.py
+│   ├── retriever.py
+│   ├── answer_generator.py
+│   ├── llm_generator.py
+│   ├── llm_answer.py
+│   ├── query_rag.py
+│   ├── query_image.py
+│   ├── voice_input.py
+│   ├── ocr_reader.py
+│   └── image_analyzer.py
+└── data/
+    ├── manuals/
+    │   ├── transformer_manual.pdf
+    │   ├── osha_electrical_safety.pdf
+    │   └── osha_field_safety_manual.pdf
+    ├── index/
+    │   ├── manuals.faiss
+    │   └── chunks.json
+    ├── uploads/
+    ├── test_query.mp3
+    ├── test_label.jpg
+    └── test_equipment.jpg
+
+============================================================
+IMPORTANT FILES
+============================================================
+
+app.py:
+- Flask API
+- Serves frontend
+- Loads FAISS index and chunks once at startup
+- Exposes:
+  - GET /health
+  - POST /query
+  - POST /query/image
+  - POST /query/voice
+  - POST /query/ocr
+
+static/index.html:
+- Current frontend UI
+- Blue/white professional dashboard/chatbot hybrid
+- Uses relative fetch paths because AMD Jupyter proxy breaks absolute paths
+- Must keep these relative API calls:
+  - fetch('health')
+  - fetch('query')
+  - fetch('query/voice')
+  - fetch('query/image')
+  - fetch('query/ocr')
+
+rag/build_index.py:
+- Loads PDFs
+- Chunks documents
+- Embeds chunks
+- Builds FAISS index
+- Saves:
+  - data/index/manuals.faiss
+  - data/index/chunks.json
+
+rag/embedder.py:
+- Uses BAAI/bge-small-en-v1.5
+- 384 dimensional embeddings
+- Normalized embeddings
+
+rag/retriever.py:
+- Uses FAISS IndexFlatIP
+
+rag/llm_generator.py:
+- Talks to Qwen2.5-7B through vLLM/OpenAI-compatible endpoint
+- vLLM base URL is local port 8000
+
+rag/image_analyzer.py:
+- Uses Salesforce/blip-image-captioning-base
+
+rag/voice_input.py:
+- Uses Whisper base model
+- Needs ffmpeg available at /usr/local/bin/ffmpeg
+
+rag/ocr_reader.py:
+- Uses EasyOCR, English, gpu=False
+
+rag/answer_generator.py:
+- Extractive fallback answer builder
+- Filters bad/junk manual fragments
+
+============================================================
+MODELS
+============================================================
+
+Embedding model:
+- BAAI/bge-small-en-v1.5
+- 384 dimensions
+- Used for document chunks and query embeddings
+
+LLM:
+- Qwen/Qwen2.5-7B-Instruct
+- Served by vLLM
+- OpenAI-compatible API
+- Runs on port 8000
+
+Image captioning:
+- Salesforce/blip-image-captioning-base
+
+Voice:
+- Whisper base
+
+OCR:
+- EasyOCR English
+
+============================================================
+DATA SOURCES
+============================================================
+
+Manuals currently used:
+1. USBR Transformer Maintenance Manual
+   https://usbr.gov/tsc/techreferences/mands/mands-pdfs/Trnsfrmr.pdf
+
+2. OSHA Electrical Safety Manual
+   https://www.osha.gov/sites/default/files/publications/OSHA3075.pdf
+
+3. OSHA Field Safety Manual
+   https://www.osha.gov/sites/default/files/enforcement/directives/ADM_04-00-001.pdf
+
+After indexing these, expected index size:
+- 1160 chunks/vectors
+
+Health endpoint expected output:
+{
+  "chunks": 1160,
+  "llm": "Qwen2.5-7B via vLLM",
+  "status": "ok",
+  "vectors": 1160
+}
+
+============================================================
+CURRENT WORKING FEATURES
+============================================================
+
+Working:
+- Text query → RAG → Qwen answer → sources
+- Voice upload → Whisper transcript → RAG answer
+- Photo upload → BLIP caption → RAG answer
+- Label/OCR upload → EasyOCR text → RAG answer
+- Flask API all endpoints
+- Frontend UI
+- AMD Jupyter proxy browser access
+- Source citations
+- Quick question chips
+- FAISS index loading
+- Qwen/vLLM response generation
+
+Current UI state:
+- UI is already done and looks professional
+- Blue/white field operations style
+- Left sidebar mode selector
+- Main workspace
+- Guidance checklist
+- Source documents card
+- Status badge showing Qwen 2.5 and chunk count
+
+Potential optional improvement:
+- Add direct in-browser microphone recording using MediaRecorder while keeping upload fallback.
+- Do not change backend routes for this unless needed.
+- If browser records webm and backend cannot transcribe it, convert using ffmpeg before Whisper.
+
+============================================================
+FRESH CLONE SETUP GUIDE
+============================================================
+
+Step 1: Clone repo
+
+cd /workspace
+git clone https://github.com/NisargTCS/field-service-rag.git
+cd field-service-rag
+
+Step 2: Configure git identity if committing from AMD
+
+git config --global user.name "NisargTCS"
+git config --global user.email "nisarg.wath1@tcs.com"
+
+Step 3: Install Python dependencies
+
+python3 -m pip install -r requirements.txt
+
+If requirements are incomplete, install:
+
+python3 -m pip install pymupdf sentence-transformers faiss-cpu numpy transformers accelerate flask easyocr openai-whisper gTTS pydub Pillow vllm
+
+Step 4: Install ffmpeg static binary
+
+wget -O /tmp/ffmpeg.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+tar -xf /tmp/ffmpeg.tar.xz -C /tmp/
+cp /tmp/ffmpeg-*-amd64-static/ffmpeg /usr/local/bin/ffmpeg
+chmod +x /usr/local/bin/ffmpeg
+
+Verify:
+
+ffmpeg -version
+
+Step 5: Download manuals
+
+mkdir -p /workspace/field-service-rag/data/manuals
+cd /workspace/field-service-rag/data/manuals
+
+wget -O transformer_manual.pdf "https://usbr.gov/tsc/techreferences/mands/mands-pdfs/Trnsfrmr.pdf"
+
+wget -O osha_electrical_safety.pdf "https://www.osha.gov/sites/default/files/publications/OSHA3075.pdf"
+
+wget -O osha_field_safety_manual.pdf "https://www.osha.gov/sites/default/files/enforcement/directives/ADM_04-00-001.pdf"
+
+cd /workspace/field-service-rag
+
+Step 6: Build FAISS index
+
+python3 rag/build_index.py
+
+Expected:
+FAISS vectors indexed: 1160
+
+Step 7: Optional test files
+
+Create test voice:
+
+python3 -c "
+from gtts import gTTS
+tts = gTTS('What should I check during transformer inspection?', lang='en')
+tts.save('data/test_query.mp3')
+print('Audio created.')
+"
+
+Create test OCR label:
+
+python3 -c "
+from PIL import Image, ImageDraw
+img = Image.new('RGB', (400, 200), color=(255, 255, 255))
+draw = ImageDraw.Draw(img)
+draw.rectangle([10, 10, 390, 190], outline=(0,0,0), width=3)
+draw.text((20, 30),  'DANGER',              fill=(200, 0, 0))
+draw.text((20, 70),  'HIGH VOLTAGE 11000V', fill=(0, 0, 0))
+draw.text((20, 110), 'DO NOT OPERATE',      fill=(0, 0, 0))
+draw.text((20, 150), 'LOCKOUT REQUIRED',    fill=(0, 0, 0))
+img.save('data/test_label.jpg')
+print('Label image created.')
+"
+
+============================================================
+HOW TO RUN SERVERS
+============================================================
+
+Terminal 1: Start vLLM / Qwen
+
+cd /workspace/field-service-rag
+
+python3 -m vllm.entrypoints.openai.api_server \
+  --model Qwen/Qwen2.5-7B-Instruct \
+  --host 0.0.0.0 \
+  --port 8000
+
+Leave this terminal running.
+
+Check vLLM from another terminal:
+
+curl http://127.0.0.1:8000/v1/models
+
+If model is running, this returns model JSON.
+
+Terminal 2: Start Flask
+
+cd /workspace/field-service-rag
+python3 app.py
+
+Leave this terminal running.
+
+Check Flask:
+
+curl http://127.0.0.1:5000/health
+
+Expected:
+{
+  "chunks": 1160,
+  "llm": "Qwen2.5-7B via vLLM",
+  "status": "ok",
+  "vectors": 1160
+}
+
+Open UI in browser:
+
+https://notebooks.amd.com/<current-instance-id>/proxy/5000/
+
+Example:
+https://notebooks.amd.com/jupyter-hack-team-667-260610160512-aa12fa09/proxy/5000/
+
+Do not use laptop localhost.
+
+============================================================
+API TEST COMMANDS
+============================================================
+
+Health:
+
+curl http://127.0.0.1:5000/health
+
+Text query:
+
+curl -X POST http://127.0.0.1:5000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query":"What should I check during transformer inspection?"}'
+
+Voice query:
+
+curl -X POST http://127.0.0.1:5000/query/voice \
+  -F "file=@data/test_query.mp3"
+
+OCR query:
+
+curl -X POST http://127.0.0.1:5000/query/ocr \
+  -F "file=@data/test_label.jpg"
+
+Image query:
+
+curl -X POST http://127.0.0.1:5000/query/image \
+  -F "file=@data/test_equipment.jpg"
+
+============================================================
+CLI TEST COMMANDS
+============================================================
+
+Text RAG:
+
+python3 rag/query_rag.py "What should I check during transformer inspection?"
+
+Safety question:
+
+python3 rag/query_rag.py "What PPE should a technician use around electrical equipment?"
+
+Voice:
+
+python3 rag/voice_input.py data/test_query.mp3
+
+OCR:
+
+python3 rag/ocr_reader.py data/test_label.jpg
+
+Image:
+
+python3 rag/query_image.py data/test_equipment.jpg
+
+Demo script:
+
+python3 demo.py
+
+Note:
+demo.py expects Flask to already be running in another terminal.
+
+============================================================
+GOOD DEMO QUESTIONS
+============================================================
+
+Text:
+What should I check during transformer inspection?
+
+What should I do if I find oil leaks on a transformer?
+
+What PPE should a technician use around electrical equipment?
+
+What are common electrical hazards for field technicians?
+
+How should transformer bushings be maintained?
+
+OCR:
+Use an image with text like:
+DANGER HIGH VOLTAGE
+DO NOT OPERATE
+LOCKOUT REQUIRED
+
+Photo:
+Use clear real equipment photos:
+- transformer oil leak
+- electrical transformer bushing crack
+- substation transformer cooling fans
+- high voltage warning label
+- transformer nameplate
+
+============================================================
+GIT / SAVE WORK
+============================================================
+
+Check status:
+
+git status
+
+Stage and commit:
+
+git add .
+git commit -m "Describe changes"
+
+Before push, if remote has newer work:
+
+git pull --rebase origin main
+
+Push:
+
+git push origin main
+
+If identity missing:
+
+git config --global user.name "NisargTCS"
+git config --global user.email "nisarg.wath1@tcs.com"
+
+If push asks password:
+Use GitHub Personal Access Token, not GitHub password.
+
+============================================================
+IMPORTANT GOTCHAS
+============================================================
+
+1. AMD cloud sessions reset packages.
+Always reinstall dependencies in fresh sessions.
+
+2. Do not open http://localhost:5000 on laptop.
+Use AMD Jupyter proxy:
+https://notebooks.amd.com/<instance-id>/proxy/5000/
+
+3. Need two running terminals:
+- vLLM on 8000
+- Flask on 5000
+
+4. Frontend fetch paths must be relative:
+Correct:
+fetch('query')
+
+Wrong behind AMD proxy:
+fetch('/query')
+
+5. PDF manuals may not be stored in git if .gitignore excludes them.
+Download manuals again and rebuild index.
+
+6. FAISS index may be ignored by git.
+Run:
+python3 rag/build_index.py
+
+7. ffmpeg may not be installed through apt.
+Use static binary from johnvansickle.
+
+8. BLIP works better on real equipment photos than synthetic images.
+
+9. EasyOCR works best on clear labels/nameplates.
+
+10. Whisper needs ffmpeg for audio decoding.
+
+============================================================
+CURRENT NEXT TASK OPTIONS
+============================================================
+
+The system is already working end to end.
+
+Possible next work:
+1. Add direct browser microphone recording in Voice mode using MediaRecorder.
+2. Improve mobile responsiveness further.
+3. Add more utility manuals.
+4. Add source preview snippets in frontend.
+5. Add confidence warning when retrieval scores are low.
+6. Add architecture diagram and presentation slides.
+7. Clean repo and README for final hackathon submission.
+
+If continuing implementation, do not change core backend logic unless necessary.
+Preserve existing routes, relative fetch paths, and current working behavior.
