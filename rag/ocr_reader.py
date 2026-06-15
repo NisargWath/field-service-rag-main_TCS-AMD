@@ -1,9 +1,4 @@
-"""
-ocr_reader.py
-Reads text from equipment nameplates/warning labels using EasyOCR,
-then feeds extracted text into the RAG pipeline.
-Usage: python3 rag/ocr_reader.py <image_path> [--debug]
-"""
+
 
 import sys
 import os
@@ -35,8 +30,12 @@ def extract_text_from_image(image_path: str) -> str:
     reader = load_ocr()
     print(f"Running OCR on: {image_path}")
     results = reader.readtext(image_path)
-    # Extract just the text parts, filter low confidence
-    texts = [text for (_, text, confidence) in results if confidence > 0.3]
+    
+    print("\nRAW OCR RESULTS:")
+    for bbox, text, conf in results:
+        print(f"Text='{text}'  Confidence={conf:.3f}")
+    
+    texts = [text for (_, text, confidence) in results]
     extracted = " ".join(texts).strip()
     return extracted
 
