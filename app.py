@@ -39,11 +39,25 @@ print(f"vLLM status: {'ONLINE — using Qwen 2.5 7B' if vllm_online else 'OFFLIN
 
 
 # ── Shared RAG function ───────────────────────────────────────────────────────
+def compute_confidence(hits):
+    if not hits:
+        return {"level": "Low", "top_score": 0.0,
+                "message": "No manual matches found. Escalate to a supervisor or subject matter expert."}
+    top = hits[0]["score"]
+    if top >= 0.75:
+        return {"level": "High", "top_score": round(top, 4),
+                "message": "High confidence based on retrieved manual matches."}
+    elif top >= 0.60:
+        return {"level": "Medium", "top_score": round(top, 4),
+                "message": "Medium confidence. Verify with the relevant manual section."}
+    else:
+        return {"level": "Low", "top_score": round(top, 4),
+                "message": "Low confidence. Manuals may not contain enough information. Escalate to a supervisor or subject matter expert."}
+
 def rag_answer(query: str) -> dict:
     query_vec = generate_embeddings([query])
     hits      = search_index(query_vec, index, chunks, top_k=5)
 
-    # Use LLM if available, else fall back to extractive
     if is_vllm_available():
         answer_text = generate_llm_answer(query, hits)
         mode = "llm"
@@ -53,19 +67,20 @@ def rag_answer(query: str) -> dict:
         mode = "extractive"
 
     return {
-        "query":   query,
-        "answer":  answer_text,
-        "mode":    mode,
+        "query":      query,
+        "answer":     answer_text,
+        "mode":       mode,
+        "confidence": compute_confidence(hits),
         "sources": [
             {
                 "source":   h["source"],
                 "chunk_id": h["chunk_id"],
-                "score":    h["score"]
+                "score":    h["score"],
+                "snippet":  h["text"][:700].strip() if h.get("text") else ""
             }
             for h in hits[:3]
         ]
     }
-
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 @app.route("/")
