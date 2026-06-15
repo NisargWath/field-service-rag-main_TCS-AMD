@@ -164,6 +164,7 @@ The system uses two servers.
 ### Terminal 1: Start vLLM
 
 ```bash
+ pip install sentence_transformers
 cd /workspace/field-service-rag
 
 python3 -m vllm.entrypoints.openai.api_server \
@@ -179,9 +180,18 @@ curl http://127.0.0.1:8000/v1/models
 ```
 
 ### Terminal 2: Start Flask
+```bash
+python3 -m pip install flask --ignore-installed blinker
+```
+Then test:
+```bash 
+python3 -c "import flask; print('flask ok')"
+Then run:
+```
 
 ```bash
-cd /workspace/field-service-rag
+cd /workspace/field-service-rag-main_TCS-AMD
+
 python3 app.py
 ```
 
