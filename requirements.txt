@@ -10,3 +10,4 @@ openai-whisper
 gTTS
 pydub
 Pillow
+sentence_transformers
