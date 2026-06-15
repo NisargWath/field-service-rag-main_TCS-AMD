@@ -147,7 +147,11 @@ def query_voice():
     try:
         transcript = transcribe_audio(tmp_path)
         if not transcript:
-            return jsonify({"error": "Could not transcribe audio"}), 422
+            return jsonify({
+                "ocr_text": "",
+                "guidance": "No readable text detected. Please upload a clearer image.",
+                "sources": []
+            }), 200
         answer = rag_answer(transcript)
         return jsonify({
             "transcript": transcript,
