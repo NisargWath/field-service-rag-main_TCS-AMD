@@ -61,7 +61,7 @@ The transformer use case is the first implemented domain slice. The same pipelin
 ## Project Structure
 
 ```text
-field-service-rag/
+field-service-rag-main_TCS-AMD/
 ├── app.py
 ├── demo.py
 ├── requirements.txt
@@ -92,8 +92,8 @@ Clone the repository:
 
 ```bash
 cd /workspace
-git clone https://github.com/NisargTCS/field-service-rag.git
-cd field-service-rag
+git clone https://github.com/NisargTCS/field-service-rag-main_TCS-AMD.git
+cd field-service-rag-main_TCS-AMD
 ```
 
 Install dependencies:
@@ -165,7 +165,7 @@ The system uses two servers.
 
 ```bash
  pip install sentence_transformers
-cd /workspace/field-service-rag
+cd /workspace/field-service-rag-main_TCS-AMD
 
 python3 -m vllm.entrypoints.openai.api_server \
   --model Qwen/Qwen2.5-7B-Instruct \
@@ -190,7 +190,7 @@ Then run:
 ```
 
 ```bash
-cd /workspace/field-service-rag-main_TCS-AMD
+cd /workspace/field-service-rag-main_TCS-AMD-main_TCS-AMD
 
 python3 app.py
 ```
