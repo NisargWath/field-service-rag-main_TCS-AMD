@@ -49,6 +49,104 @@
   --shadow-md: 0 2px 8px rgba(15,35,66,0.10), 0 8px 24px rgba(15,35,66,0.08);
 }
 
+
+/* ── CONFIDENCE BADGE ────────────────────────────────────────── */
+.confidence-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.15);
+  flex-wrap: wrap;
+}
+
+.conf-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.conf-badge.High  { background: var(--green-100); color: var(--green-600); border: 1px solid #86efac; }
+.conf-badge.Medium{ background: var(--amber-100); color: var(--amber-600); border: 1px solid #fcd34d; }
+.conf-badge.Low   { background: var(--red-100);   color: var(--red-600);   border: 1px solid #fca5a5; }
+
+.conf-message {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  flex: 1;
+}
+
+.conf-score {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  flex-shrink: 0;
+}
+
+/* ── FIELD REPORT BUTTON ─────────────────────────────────────── */
+.report-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.65);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+.report-btn:hover {
+  background: rgba(255,255,255,0.13);
+  color: var(--white);
+}
+
+/* ── EVIDENCE SNIPPET ────────────────────────────────────────── */
+.evidence-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--blue-500);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+  margin-top: 4px;
+  transition: color 0.12s;
+}
+
+.evidence-toggle:hover { color: var(--blue-700); }
+
+.evidence-snippet {
+  display: none;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--slate-600, #475569);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.source-row { flex-wrap: wrap; }
+.source-info { width: 100%; }
+    
 /* ── RESET ───────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; -webkit-text-size-adjust: 100%; }
@@ -1110,6 +1208,7 @@ textarea.query-input:focus {
       </div>
 
       <!-- Answer -->
+<!-- Answer -->
       <div class="answer-card">
         <div class="answer-card-header">
           <div class="answer-card-title">
@@ -1117,6 +1216,17 @@ textarea.query-input:focus {
             Guidance
           </div>
           <span class="mode-pill" id="mode-pill">llm</span>
+        </div>
+        <div class="confidence-bar" id="confidence-bar" style="display:none;">
+          <span class="conf-badge" id="conf-badge">High</span>
+          <span class="conf-message" id="conf-message"></span>
+          <span class="conf-score" id="conf-score"></span>
+          <button class="report-btn" onclick="generateFieldReport()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Field Report
+          </button>
         </div>
         <div class="answer-body" id="answer-body"></div>
       </div>
@@ -1136,8 +1246,10 @@ textarea.query-input:focus {
 
   </main>
 </div><!-- /app-shell -->
-
 <script>
+/* ── STATE ───────────────────────────────────────────────────── */
+let lastResult = null;
+
 /* ── TAB SWITCHING ────────────────────────────────────────────── */
 function switchTab(tab) {
   document.querySelectorAll('.nav-btn, .mobile-tab-btn').forEach(b => {
@@ -1250,18 +1362,20 @@ function hideResult() {
   hideError();
 }
 
-/* ── RENDER RESULT ───────────────────────────────────────────── */
+/* ── HELPERS ─────────────────────────────────────────────────── */
 function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+/* ── RENDER RESULT ───────────────────────────────────────────── */
 function renderResult(data) {
+  lastResult = data;
   hideError();
 
-  const ibox  = document.getElementById('intermediate-box');
-  const ilbl  = document.getElementById('intermediate-label');
-  const itxt  = document.getElementById('intermediate-text');
-
+  /* Intermediate card */
+  const ibox = document.getElementById('intermediate-box');
+  const ilbl = document.getElementById('intermediate-label');
+  const itxt = document.getElementById('intermediate-text');
   if (data.caption) {
     ilbl.textContent = 'BLIP Caption';
     itxt.textContent = data.caption;
@@ -1278,6 +1392,7 @@ function renderResult(data) {
     ibox.style.display = 'none';
   }
 
+  /* Mode pill */
   const pill = document.getElementById('mode-pill');
   if (data.mode === 'llm') {
     pill.textContent = 'Qwen 2.5 7B';
@@ -1287,6 +1402,20 @@ function renderResult(data) {
     pill.className = 'mode-pill extractive';
   }
 
+  /* Confidence bar */
+  const cbar = document.getElementById('confidence-bar');
+  if (data.confidence) {
+    const c = data.confidence;
+    document.getElementById('conf-badge').textContent = c.level;
+    document.getElementById('conf-badge').className   = 'conf-badge ' + c.level;
+    document.getElementById('conf-message').textContent = c.message;
+    document.getElementById('conf-score').textContent   = 'Score: ' + (c.top_score * 100).toFixed(0) + '%';
+    cbar.style.display = 'flex';
+  } else {
+    cbar.style.display = 'none';
+  }
+
+  /* Answer body */
   const body  = document.getElementById('answer-body');
   const lines = (data.answer || '').split('\n').map(l => l.trim()).filter(Boolean);
   const stepPat = /^(\d+)[.)]\s+(.+)/;
@@ -1312,22 +1441,127 @@ function renderResult(data) {
     body.innerHTML = lines.map(l => '<p style="margin-bottom:8px">' + escHtml(l) + '</p>').join('');
   }
 
+  /* Sources with evidence snippets */
   const list = document.getElementById('sources-list');
   list.innerHTML = '';
-  (data.sources || []).forEach(s => {
+  (data.sources || []).forEach((s, idx) => {
     const row = document.createElement('div');
     row.className = 'source-row';
-    row.innerHTML =
+    row.style.flexDirection = 'column';
+    row.style.alignItems = 'flex-start';
+    row.style.gap = '0';
+
+    const top = document.createElement('div');
+    top.style.cssText = 'display:flex;align-items:center;gap:12px;width:100%';
+    top.innerHTML =
       '<span class="source-score">' + (s.score * 100).toFixed(0) + '%</span>' +
       '<div class="source-info">' +
         '<div class="source-file">' + escHtml(s.source) + '</div>' +
         '<div class="source-chunk">Chunk #' + s.chunk_id + '</div>' +
       '</div>';
+
+    row.appendChild(top);
+
+    if (s.snippet) {
+      const snippetId = 'snippet-' + idx;
+      const toggle = document.createElement('button');
+      toggle.className = 'evidence-toggle';
+      toggle.innerHTML =
+        '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
+        '<span>View evidence</span>';
+      toggle.style.marginLeft = '58px'; /* align under source-info */
+
+      const snipEl = document.createElement('div');
+      snipEl.className = 'evidence-snippet';
+      snipEl.id = snippetId;
+      snipEl.textContent = s.snippet;
+      snipEl.style.marginLeft = '58px';
+
+      toggle.addEventListener('click', () => {
+        const open = snipEl.style.display === 'block';
+        snipEl.style.display = open ? 'none' : 'block';
+        const arrow = toggle.querySelector('svg');
+        arrow.style.transform = open ? '' : 'rotate(90deg)';
+        toggle.querySelector('span').textContent = open ? 'View evidence' : 'Hide evidence';
+      });
+
+      row.appendChild(toggle);
+      row.appendChild(snipEl);
+    }
+
     list.appendChild(row);
   });
 
   document.getElementById('result-area').classList.add('visible');
   document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── FIELD REPORT ────────────────────────────────────────────── */
+function generateFieldReport() {
+  if (!lastResult) return;
+  const d   = lastResult;
+  const now = new Date();
+  const ts  = now.toISOString().replace('T', ' ').substring(0, 19);
+  const fileTs = now.toISOString().substring(0, 19).replace('T','_').replace(/:/g,'-');
+
+  const mode = d.caption ? 'image' : d.transcript ? 'voice' : d.ocr_text ? 'ocr' : 'text';
+
+  let md = '';
+  md += '# Field Service Report\n\n';
+  md += `**Timestamp:** ${ts}\n`;
+  md += `**Input Mode:** ${mode}\n\n`;
+
+  md += '## Query\n\n';
+  md += (d.query || '').trim() + '\n\n';
+
+  if (d.transcript)  md += `**Transcript:** ${d.transcript}\n\n`;
+  if (d.caption)     md += `**Equipment Caption:** ${d.caption}\n\n`;
+  if (d.ocr_text)    md += `**OCR Text:**\n\n${d.ocr_text}\n\n`;
+
+  if (d.confidence) {
+    const c = d.confidence;
+    md += '## Confidence\n\n';
+    md += `- **Level:** ${c.level}\n`;
+    md += `- **Top Score:** ${(c.top_score * 100).toFixed(1)}%\n`;
+    md += `- **Note:** ${c.message}\n\n`;
+  }
+
+  md += '## Guidance\n\n';
+  const lines = (d.answer || '').split('\n').map(l => l.trim()).filter(Boolean);
+  const stepPat = /^(\d+)[.)]\s+(.+)/;
+  lines.forEach(line => {
+    const m = line.match(stepPat);
+    if (m) {
+      md += `- [ ] ${m[2]}\n`;
+    } else if (line.startsWith('Question:') || line.startsWith('Sources:') || line.startsWith('Field technician answer:')) {
+      md += `\n**${line}**\n\n`;
+    } else {
+      md += `${line}\n\n`;
+    }
+  });
+
+  if (d.sources && d.sources.length) {
+    md += '\n## Source Documents\n\n';
+    d.sources.forEach(s => {
+      md += `### ${s.source}\n`;
+      md += `- Chunk ID: ${s.chunk_id}\n`;
+      md += `- Score: ${(s.score * 100).toFixed(1)}%\n`;
+      if (s.snippet) md += `\n**Evidence:**\n\n> ${s.snippet.replace(/\n/g, '\n> ')}\n`;
+      md += '\n';
+    });
+  }
+
+  md += '---\n*Generated by Field AI — Energy & Utility Assistant*\n';
+
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `field_report_${fileTs}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /* ── SUBMIT: TEXT ─────────────────────────────────────────────── */
@@ -1354,12 +1588,9 @@ async function submitText() {
 /* ── SUBMIT: VOICE ───────────────────────────────────────────── */
 async function submitVoice() {
   let file = document.getElementById('voice-file').files[0];
-
-  // Fall back to recorded blob if no file chosen
   if (!file && window._recordedBlob) {
     file = new File([window._recordedBlob], 'recording.wav', { type: 'audio/wav' });
   }
-
   if (!file) { showError('Record audio or choose a file first.'); return; }
   setLoading('voice-ask-btn', true);
   try {
