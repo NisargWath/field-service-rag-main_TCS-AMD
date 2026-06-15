@@ -190,7 +190,13 @@ Then run:
 ```
 
 ```bash
+
+
 cd /workspace/field-service-rag-main_TCS-AMD-main_TCS-AMD
+python3 -m pip install easyocr
+python3 -c "import easyocr"
+python3 -m pip install -U openai-whisper
+python3 -c "import whisper; print('Whisper OK')"
 
 python3 app.py
 ```
@@ -316,6 +322,38 @@ What lockout tagout steps are required before electrical maintenance?
 ```text
 What safety precautions should be followed around high voltage equipment?
 ```
+
+## Demo Screenshots
+
+### Text Question Interface
+
+Demonstrates the core RAG workflow where technicians ask questions and receive grounded guidance with evidence from manuals.
+
+![Text Query Demo](Question.png)
+
+---
+
+### Equipment Photo Analysis
+
+Shows the multi-modal image understanding pipeline using BLIP to analyze equipment photos and provide maintenance recommendations.
+
+![Equipment Photo Demo](Image_rec.png)
+
+---
+
+### OCR-Based Label Reading
+
+Demonstrates extraction of text from warning labels and nameplates using EasyOCR, followed by retrieval of relevant safety procedures.
+
+![OCR Demo](ocr.png)
+
+---
+
+### Voice Query Assistant
+
+Illustrates speech-based interaction where Whisper transcribes technician queries and the RAG system generates evidence-backed guidance.
+
+![Voice Query Demo](Sound.png)
 
 ## Author & Team
 
