@@ -44,7 +44,9 @@ The transformer use case is the first implemented domain slice. The same pipelin
 ![Architecture Diagram](FINAL_AIAMD.png)
 
 
+## Demo Video
 
+[▶️ Watch the Demo Video](https://docs.google.com/videos/d/1yHeZR4F1WSB1vYuQ-CFNe-80JxJS3m8O-2n5OAhw66Y/play)
 
 ## Demo Screenshots
 
