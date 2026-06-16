@@ -18,7 +18,14 @@ Never make up information. Always be safety-focused and precise.
 Keep answers concise — maximum 5 steps."""
 
 
-def generate_llm_answer(query: str, chunks: list) -> str:
+SYSTEM_PROMPT_HI = """You are a utility field service assistant for energy and utility technicians.
+Answer using ONLY the provided manual excerpts.
+Generate the final answer in simple Hindi suitable for field technicians.
+Preserve technical terms in English where necessary (e.g. transformer, bushing, PPE, LOTO).
+Keep numbered bullet formatting. Be safety-focused and precise.
+Maximum 5 steps."""
+
+def generate_llm_answer(query: str, chunks: list, language: str = "en") -> str:
     """
     query  : the technician's question
     chunks : list of dicts with keys: text, source, chunk_id, score
@@ -39,10 +46,11 @@ Technician's question: {query}
 
 Provide a clear, numbered answer based only on the excerpts above."""
 
+    selected_prompt = SYSTEM_PROMPT_HI if language == "hi" else SYSTEM_PROMPT
     payload = {
         "model": MODEL_NAME,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": selected_prompt},
             {"role": "user",   "content": user_message}
         ],
         "max_tokens": 512,
