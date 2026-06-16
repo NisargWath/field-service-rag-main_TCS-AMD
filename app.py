@@ -54,12 +54,12 @@ def compute_confidence(hits):
         return {"level": "Low", "top_score": round(top, 4),
                 "message": "Low confidence. Manuals may not contain enough information. Escalate to a supervisor or subject matter expert."}
 
-def rag_answer(query: str) -> dict:
+def rag_answer(query: str, language: str = "en") -> dict:
     query_vec = generate_embeddings([query])
     hits      = search_index(query_vec, index, chunks, top_k=5)
 
     if is_vllm_available():
-        answer_text = generate_llm_answer(query, hits)
+        answer_text = generate_llm_answer(query, hits, language=language)
         mode = "llm"
     else:
         output      = generate_extractive_answer(query, hits)
@@ -85,7 +85,12 @@ def rag_answer(query: str) -> dict:
 # ── Frontend ──────────────────────────────────────────────────────────────────
 @app.route("/")
 def serve_frontend():
-    return send_from_directory("static", "index.html")
+    from flask import make_response
+    resp = make_response(send_from_directory("static", "index.html"))
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -107,7 +112,8 @@ def query_text():
     query = data["query"].strip()
     if not query:
         return jsonify({"error": "Query cannot be empty"}), 400
-    return jsonify(rag_answer(query))
+    language = data.get("language", "en")
+    return jsonify(rag_answer(query, language=language))
 
 
 @app.route("/query/image", methods=["POST"])
@@ -123,7 +129,8 @@ def query_image():
         result    = analyze_equipment_image(tmp_path)
         caption   = result["caption"]
         rag_query = result["rag_query"]
-        answer    = rag_answer(rag_query)
+        language  = request.form.get("language", "en")
+        answer    = rag_answer(rag_query, language=language)
         return jsonify({
             "caption": caption,
             "query":   rag_query,
@@ -152,7 +159,8 @@ def query_voice():
                 "guidance": "No readable text detected. Please upload a clearer image.",
                 "sources": []
             }), 200
-        answer = rag_answer(transcript)
+        language = request.form.get("language", "en")
+        answer = rag_answer(transcript, language=language)
         return jsonify({
             "transcript": transcript,
             "query":      transcript,
@@ -178,7 +186,8 @@ def query_ocr():
         if not ocr_text:
             return jsonify({"error": "No text found in image"}), 422
         rag_query = build_rag_query(ocr_text)
-        answer    = rag_answer(rag_query)
+        language  = request.form.get("language", "en")
+        answer    = rag_answer(rag_query, language=language)
         return jsonify({
             "ocr_text": ocr_text,
             "query":    rag_query,
