@@ -1,7 +1,8 @@
 
-
+![Text Query Demo](TCSAMD.png)
 ```markdown
 # TCS & AMD
+
 # Multi-Modal AI Field Service Assistant
 
 A multi-modal AI assistant for energy and utility field technicians. The system accepts text questions, voice queries, equipment photos, and warning label/nameplate images, then returns grounded maintenance and safety guidance using Retrieval-Augmented Generation over power-grid manuals.
