@@ -181,6 +181,7 @@ cd ../..
 ## Build the RAG Index
 
 ```bash
+pip install sentence_transformers
 python3 rag/build_index.py
 ```
 
@@ -198,7 +199,7 @@ The system uses two servers.
 ### Terminal 1: Start vLLM
 
 ```bash
- pip install sentence_transformers
+
 cd /workspace/field-service-rag-main_TCS-AMD
 
 python3 -m vllm.entrypoints.openai.api_server \
