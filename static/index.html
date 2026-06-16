@@ -54,37 +54,59 @@
 .confidence-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 18px;
-  border-top: 1px solid rgba(255,255,255,0.08);
-  background: rgba(0,0,0,0.15);
+  gap: 12px;
+  padding: 10px 18px;
+  border-top: 1px solid #e5e7eb;
+  background: #f8fafc;
   flex-wrap: wrap;
 }
 
+/* Confidence badges */
 .conf-badge {
   font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 20px;
-  letter-spacing: 0.04em;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.03em;
   flex-shrink: 0;
 }
 
-.conf-badge.High  { background: var(--green-100); color: var(--green-600); border: 1px solid #86efac; }
-.conf-badge.Medium{ background: var(--amber-100); color: var(--amber-600); border: 1px solid #fcd34d; }
-.conf-badge.Low   { background: var(--red-100);   color: var(--red-600);   border: 1px solid #fca5a5; }
+/* High Confidence */
+.conf-badge.High {
+  background: #dcfce7;
+  color: #14532d;          /* Dark green text */
+  border: 1px solid #86efac;
+}
 
+/* Medium Confidence */
+.conf-badge.Medium {
+  background: #fef3c7;
+  color: #92400e;          /* Dark amber text */
+  border: 1px solid #fcd34d;
+}
+
+/* Low Confidence */
+.conf-badge.Low {
+  background: #fee2e2;
+  color: #991b1b;          /* Dark red text */
+  border: 1px solid #fca5a5;
+}
+
+/* Message */
 .conf-message {
-  font-size: 12px;
-  color: rgba(255,255,255,0.55);
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;          /* Dark gray */
   flex: 1;
 }
 
+/* Score */
 .conf-score {
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: rgba(255,255,255,0.35);
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;          /* Medium gray */
   flex-shrink: 0;
 }
 
@@ -95,22 +117,38 @@
   gap: 6px;
   font-family: var(--font-ui);
   font-size: 12px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.65);
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.15);
+  font-weight: 600;
+
+  color: #ffffff;
+
+  background: #16a34a;
+  border: 1px solid #15803d;
+
   border-radius: var(--radius);
-  padding: 5px 12px;
+  padding: 7px 14px;
+
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition: all 0.15s ease;
   flex-shrink: 0;
 }
 
 .report-btn:hover {
-  background: rgba(255,255,255,0.13);
-  color: var(--white);
+  background: #15803d;
+  border-color: #166534;
+  color: #ffffff;
+
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
 }
 
+.report-btn:active {
+  transform: translateY(0);
+  background: #166534;
+}
+
+.report-btn svg {
+  color: #ffffff;
+}
 /* ── EVIDENCE SNIPPET ────────────────────────────────────────── */
 .evidence-toggle {
   display: inline-flex;
@@ -960,6 +998,15 @@ textarea.query-input:focus {
     </div>
   </div>
   <div class="header-right">
+    <select id="lang-select" style="
+      font-family:var(--font-ui);font-size:12px;font-weight:500;
+      color:var(--white);background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.18);border-radius:6px;
+      padding:5px 10px;cursor:pointer;outline:none;
+      appearance:none;-webkit-appearance:none;">
+      <option value="en" style="background:#0f2342;color:#fff;">🌐 English</option>
+      <option value="hi" style="background:#0f2342;color:#fff;">🇮🇳 हिन्दी</option>
+    </select>
     <div id="status-badge">
       <span class="dot"></span>
       <span id="status-text">Connecting…</span>
@@ -1570,10 +1617,11 @@ async function submitText() {
   if (!query) return;
   setLoading('text-ask-btn', true);
   try {
+    const lang = document.getElementById('lang-select').value;
     const r = await fetch('query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query })
+      body: JSON.stringify({ query, language: lang })
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Request failed');
@@ -1596,6 +1644,7 @@ async function submitVoice() {
   try {
     const fd = new FormData();
     fd.append('file', file);
+    fd.append('language', document.getElementById('lang-select').value);
     const r = await fetch('query/voice', { method: 'POST', body: fd });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Transcription failed');
@@ -1615,6 +1664,7 @@ async function submitPhoto() {
   try {
     const fd = new FormData();
     fd.append('file', file);
+    fd.append('language', document.getElementById('lang-select').value);
     const r = await fetch('query/image', { method: 'POST', body: fd });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Image analysis failed');
@@ -1634,6 +1684,7 @@ async function submitOCR() {
   try {
     const fd = new FormData();
     fd.append('file', file);
+    fd.append('language', document.getElementById('lang-select').value);
     const r = await fetch('query/ocr', { method: 'POST', body: fd });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'OCR failed');
